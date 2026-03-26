@@ -1,22 +1,22 @@
 "use client";
 
 import React, { useState, useRef, useEffect, useCallback } from "react";
-import { Send, User, Bot, Loader2, Trash2, Settings } from "lucide-react";
+import { Send, User, Bot, Loader2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+
+interface Message {
+  role: "user" | "assistant";
+  content: string;
+  id: string;
+}
+
+// 固定配置
+const BOT_ID = "7621087393454145582";
+const TOKEN = "pat_Bku42cXAmMebJL3c2alZJDMjnx6mdzY4hL6dds2lLXTCJI3GYxBwlkLIARTl0YAv";
 
 // SDK 类型声明
 interface CozeWebChatConfig {
@@ -60,32 +60,16 @@ declare global {
   }
 }
 
-interface Message {
-  role: "user" | "assistant";
-  content: string;
-  id: string;
-}
-
-interface ChatConfig {
-  token: string;
-  botId: string;
-}
-
 export function ChatSDKInterface() {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
-      content: "你好！我是扣子 AI 助手，请在设置中配置 Token 和 Bot ID 开始对话。",
+      content: "你好！我是扣子 AI 助手，有什么我可以帮助你的吗？",
       id: "welcome",
     },
   ]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [config, setConfig] = useState<ChatConfig>({
-    token: "",
-    botId: "",
-  });
-  const [isConfigured, setIsConfigured] = useState(false);
   const [clientReady, setClientReady] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -121,21 +105,21 @@ export function ChatSDKInterface() {
 
   // 初始化 Chat Client
   useEffect(() => {
-    if (!clientReady || !config.token || !config.botId || !window.CozeWebSDK) return;
+    if (!clientReady || !window.CozeWebSDK) return;
 
     try {
       clientRef.current = new window.CozeWebSDK.WebChatClient({
         config: {
           type: "bot",
-          bot_id: config.botId,
+          bot_id: BOT_ID,
         },
         componentProps: {
           title: "扣子 AI 助手",
         },
         auth: {
           type: "token",
-          token: config.token,
-          onRefreshToken: () => config.token,
+          token: TOKEN,
+          onRefreshToken: () => TOKEN,
         },
         ui: {
           base: {
@@ -157,7 +141,6 @@ export function ChatSDKInterface() {
           setMessages((prev) => {
             const lastMsg = prev[prev.length - 1];
             if (lastMsg && lastMsg.role === "assistant") {
-              // 追加到最后一条 AI 消息
               return [
                 ...prev.slice(0, -1),
                 {
@@ -177,8 +160,6 @@ export function ChatSDKInterface() {
           });
         },
       });
-
-      setIsConfigured(true);
     } catch (error) {
       console.error("Init error:", error);
     }
@@ -189,20 +170,10 @@ export function ChatSDKInterface() {
         clientRef.current = null;
       }
     };
-  }, [clientReady, config.token, config.botId]);
+  }, [clientReady]);
 
   const handleSend = useCallback(async () => {
-    if (!input.trim() || isLoading) {
-      if (!isConfigured) {
-        setMessages((prev) => [
-          ...prev,
-          {
-            role: "assistant",
-            content: "请先点击右上角设置按钮，配置你的 Token 和 Bot ID。",
-            id: Date.now().toString(),
-          },
-        ]);
-      }
+    if (!input.trim() || isLoading || !clientReady) {
       return;
     }
 
@@ -217,17 +188,16 @@ export function ChatSDKInterface() {
     setIsLoading(true);
 
     try {
-      // 使用 fetch 直接调用 Coze API
       abortControllerRef.current = new AbortController();
       
       const response = await fetch("https://api.coze.cn/v3/chat", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${config.token}`,
+          Authorization: `Bearer ${TOKEN}`,
         },
         body: JSON.stringify({
-          bot_id: config.botId,
+          bot_id: BOT_ID,
           user_id: "user_" + Date.now(),
           additional_messages: [
             {
@@ -274,7 +244,6 @@ export function ChatSDKInterface() {
 
               try {
                 const parsed = JSON.parse(data);
-                // 处理消息增量
                 if (parsed.event === "conversation.message.delta" && parsed.data?.content) {
                   assistantContent += parsed.data.content;
                   setMessages((prev) =>
@@ -299,7 +268,7 @@ export function ChatSDKInterface() {
         ...prev,
         {
           role: "assistant",
-          content: `出错啦: ${error instanceof Error ? error.message : "未知错误"}。请检查你的 Token 和 Bot ID 是否正确。`,
+          content: `出错啦: ${error instanceof Error ? error.message : "未知错误"}。`,
           id: (Date.now() + 1).toString(),
         },
       ]);
@@ -307,7 +276,7 @@ export function ChatSDKInterface() {
       setIsLoading(false);
       abortControllerRef.current = null;
     }
-  }, [input, isLoading, isConfigured, config.token, config.botId]);
+  }, [input, isLoading, clientReady]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -320,28 +289,8 @@ export function ChatSDKInterface() {
     setMessages([
       {
         role: "assistant",
-        content: isConfigured
-          ? "你好！我是扣子 AI 助手，有什么我可以帮助你的吗？"
-          : "你好！我是扣子 AI 助手，请在设置中配置 Token 和 Bot ID 开始对话。",
+        content: "你好！我是扣子 AI 助手，有什么我可以帮助你的吗？",
         id: "welcome",
-      },
-    ]);
-  };
-
-  const handleSaveConfig = (newConfig: ChatConfig) => {
-    // 销毁旧客户端
-    if (clientRef.current) {
-      clientRef.current.destroy();
-      clientRef.current = null;
-    }
-    
-    setConfig(newConfig);
-    setIsConfigured(false);
-    setMessages([
-      {
-        role: "assistant",
-        content: "配置已保存！正在初始化...",
-        id: "configured",
       },
     ]);
   };
@@ -357,40 +306,18 @@ export function ChatSDKInterface() {
           <div>
             <h1 className="font-semibold text-foreground">扣子 AI 助手</h1>
             <p className="text-xs text-muted-foreground">
-              {!clientReady ? "SDK加载中..." : isConfigured ? "已配置" : "未配置"}
+              {!clientReady ? "SDK加载中..." : "就绪"}
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-1">
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="text-muted-foreground hover:text-foreground"
-              >
-                <Settings className="w-4 h-4" />
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
-              <DialogHeader>
-                <DialogTitle>配置 Chat SDK</DialogTitle>
-                <DialogDescription>
-                  请输入你的扣子 Token 和 Bot ID。这些信息仅存储在浏览器本地。
-                </DialogDescription>
-              </DialogHeader>
-              <ConfigForm config={config} onSave={handleSaveConfig} />
-            </DialogContent>
-          </Dialog>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={handleClear}
-            className="text-muted-foreground hover:text-foreground"
-          >
-            <Trash2 className="w-4 h-4" />
-          </Button>
-        </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={handleClear}
+          className="text-muted-foreground hover:text-foreground"
+        >
+          <Trash2 className="w-4 h-4" />
+        </Button>
       </div>
 
       {/* 消息区域 */}
@@ -457,15 +384,9 @@ export function ChatSDKInterface() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder={
-                !clientReady
-                  ? "SDK加载中..."
-                  : isConfigured
-                  ? "输入消息... (Shift + Enter 换行)"
-                  : "请先配置 Token 和 Bot ID"
-              }
+              placeholder={!clientReady ? "SDK加载中..." : "输入消息... (Shift + Enter 换行)"}
               className="min-h-[44px] max-h-[200px] resize-none border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 text-sm py-2.5 px-3"
-              disabled={isLoading || !clientReady}
+              disabled={isLoading}
             />
             <Button
               onClick={handleSend}
@@ -486,66 +407,5 @@ export function ChatSDKInterface() {
         </div>
       </div>
     </div>
-  );
-}
-
-// 配置表单组件
-function ConfigForm({
-  config,
-  onSave,
-}: {
-  config: ChatConfig;
-  onSave: (config: ChatConfig) => void;
-}) {
-  const [localConfig, setLocalConfig] = useState(config);
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSave(localConfig);
-  };
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-4 mt-4">
-      <div className="space-y-2">
-        <Label htmlFor="token">
-          Token
-          <span className="text-destructive">*</span>
-        </Label>
-        <Input
-          id="token"
-          type="password"
-          placeholder="输入你的扣子 Personal Access Token"
-          value={localConfig.token}
-          onChange={(e) =>
-            setLocalConfig((prev) => ({ ...prev, token: e.target.value }))
-          }
-          required
-        />
-        <p className="text-xs text-muted-foreground">
-          在扣子平台的「设置 &gt; 个人访问令牌」中获取
-        </p>
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="botId">
-          Bot ID
-          <span className="text-destructive">*</span>
-        </Label>
-        <Input
-          id="botId"
-          placeholder="输入你的 Bot ID"
-          value={localConfig.botId}
-          onChange={(e) =>
-            setLocalConfig((prev) => ({ ...prev, botId: e.target.value }))
-          }
-          required
-        />
-        <p className="text-xs text-muted-foreground">
-          在扣子平台的「发布 &gt; Web SDK」中获取 Bot ID
-        </p>
-      </div>
-      <Button type="submit" className="w-full">
-        保存配置
-      </Button>
-    </form>
   );
 }
