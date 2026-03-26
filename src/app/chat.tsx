@@ -32,6 +32,7 @@ export default function Chat() {
           conversations: {
             isNeed: true,
           },
+          chatBot: {},
         },
       });
 
