@@ -9,7 +9,7 @@ echo "Installing dependencies..."
 pnpm install --prefer-frozen-lockfile --prefer-offline --loglevel debug --reporter=append-only
 
 echo "Building the Next.js project..."
-npx next build
+BASE_PATH=/lingtalk npx next build
 
 echo "Bundling server with tsup..."
 npx tsup src/server.ts --format cjs --platform node --target node20 --outDir dist --no-splitting --no-minify
