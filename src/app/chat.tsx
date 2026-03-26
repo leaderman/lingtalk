@@ -25,9 +25,9 @@ export default function Chat() {
           asstBtn: {
             isNeed: false,
           },
-        },
-        conversations: {
-          isNeed: true,
+          conversations: {
+            isNeed: true,
+          },
         },
       });
 
