@@ -26,7 +26,7 @@ export default function Chat() {
             isNeed: false,
           },
           header: {
-            isShow: true,
+            isShow: false,
             isNeedClose: false,
           },
           conversations: {
