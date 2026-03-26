@@ -8,7 +8,7 @@ export const metadata: Metadata = {
     default: '灵语 - 智能客服平台',
     template: '%s | 灵语',
   },
-  description: '基于字节扣子 Chat SDK 的智能客服平台',
+  description: '基于灵语的智能客服平台',
 };
 
 export default function RootLayout({
