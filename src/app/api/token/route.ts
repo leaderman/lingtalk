@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const token = await getJWTToken({
+    const tokenResponse = await getJWTToken({
       baseURL: process.env.LINGTALK_BASE_URL || "",
       appId: process.env.LINGTALK_APP_ID || "",
       aud: process.env.LINGTALK_AUD || "",
@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       code: 200,
       msg: "success",
-      data: token,
+      data: tokenResponse.access_token,
     });
   } catch (error) {
     return NextResponse.json({
