@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useRef, useEffect, useCallback } from "react";
-import { CozeAPI, ChatEventType, RoleType } from "@coze/api";
 import { Send, User, Bot, Loader2, Trash2, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -19,6 +18,46 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 
+// SDK 类型声明
+interface CozeWebChatConfig {
+  config: {
+    bot_id: string;
+  };
+  componentProps?: {
+    title?: string;
+    icon?: string;
+  };
+  ui?: {
+    base?: {
+      zIndex?: number;
+    };
+  };
+  auth?: {
+    type: 'token' | 'jwt';
+    token?: string;
+    jwt?: string;
+  };
+  onError?: (error: Error) => void;
+  onMessageReceive?: (message: string) => void;
+}
+
+interface CozeWebChatClient {
+  openChat: () => void;
+  closeChat: () => void;
+  destroy: () => void;
+  updateToken: (token: string) => void;
+  sendMessage: (message: string) => void;
+  clearConversation: () => void;
+}
+
+declare global {
+  interface Window {
+    CozeWebSDK?: {
+      WebChatClient: new (config: CozeWebChatConfig) => CozeWebChatClient;
+    };
+  }
+}
+
 interface Message {
   role: "user" | "assistant";
   content: string;
@@ -28,7 +67,6 @@ interface Message {
 interface ChatConfig {
   token: string;
   botId: string;
-  baseURL?: string;
 }
 
 export function ChatSDKInterface() {
@@ -44,24 +82,25 @@ export function ChatSDKInterface() {
   const [config, setConfig] = useState<ChatConfig>({
     token: "",
     botId: "",
-    baseURL: "https://api.coze.cn",
   });
   const [isConfigured, setIsConfigured] = useState(false);
+  const [clientReady, setClientReady] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const clientRef = useRef<CozeAPI | null>(null);
+  const clientRef = useRef<CozeWebChatClient | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
-  // 初始化 Coze 客户端
+  // 等待 SDK 加载
   useEffect(() => {
-    if (config.token && config.botId) {
-      clientRef.current = new CozeAPI({
-        token: config.token,
-        baseURL: config.baseURL,
-        allowPersonalAccessTokenInBrowser: true,
-      });
-      setIsConfigured(true);
-    }
-  }, [config]);
+    const checkSDK = setInterval(() => {
+      if (typeof window !== "undefined" && window.CozeWebSDK) {
+        setClientReady(true);
+        clearInterval(checkSDK);
+      }
+    }, 100);
+
+    return () => clearInterval(checkSDK);
+  }, []);
 
   // 自动滚动到底部
   useEffect(() => {
@@ -78,8 +117,78 @@ export function ChatSDKInterface() {
     }
   }, [input]);
 
+  // 初始化 Chat Client
+  useEffect(() => {
+    if (!clientReady || !config.token || !config.botId || !window.CozeWebSDK) return;
+
+    try {
+      clientRef.current = new window.CozeWebSDK.WebChatClient({
+        config: {
+          bot_id: config.botId,
+        },
+        componentProps: {
+          title: "扣子 AI 助手",
+        },
+        auth: {
+          type: "token",
+          token: config.token,
+        },
+        ui: {
+          base: {
+            zIndex: 1000,
+          },
+        },
+        onError: (error) => {
+          console.error("Coze Chat Error:", error);
+          setMessages((prev) => [
+            ...prev,
+            {
+              role: "assistant",
+              content: `出错了: ${error.message}`,
+              id: Date.now().toString(),
+            },
+          ]);
+        },
+        onMessageReceive: (message) => {
+          setMessages((prev) => {
+            const lastMsg = prev[prev.length - 1];
+            if (lastMsg && lastMsg.role === "assistant") {
+              // 追加到最后一条 AI 消息
+              return [
+                ...prev.slice(0, -1),
+                {
+                  ...lastMsg,
+                  content: lastMsg.content + message,
+                },
+              ];
+            }
+            return [
+              ...prev,
+              {
+                role: "assistant",
+                content: message,
+                id: Date.now().toString(),
+              },
+            ];
+          });
+        },
+      });
+
+      setIsConfigured(true);
+    } catch (error) {
+      console.error("Init error:", error);
+    }
+
+    return () => {
+      if (clientRef.current) {
+        clientRef.current.destroy();
+        clientRef.current = null;
+      }
+    };
+  }, [clientReady, config.token, config.botId]);
+
   const handleSend = useCallback(async () => {
-    if (!input.trim() || isLoading || !isConfigured || !clientRef.current) {
+    if (!input.trim() || isLoading) {
       if (!isConfigured) {
         setMessages((prev) => [
           ...prev,
@@ -104,18 +213,36 @@ export function ChatSDKInterface() {
     setIsLoading(true);
 
     try {
-      const stream = await clientRef.current.chat.stream({
-        bot_id: config.botId,
-        auto_save_history: true,
-        additional_messages: [
-          {
-            role: RoleType.User,
-            content: userMessage.content,
-            content_type: "text",
-          },
-        ],
+      // 使用 fetch 直接调用 Coze API
+      abortControllerRef.current = new AbortController();
+      
+      const response = await fetch("https://api.coze.cn/v3/chat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${config.token}`,
+        },
+        body: JSON.stringify({
+          bot_id: config.botId,
+          user_id: "user_" + Date.now(),
+          additional_messages: [
+            {
+              role: "user",
+              content: userMessage.content,
+              content_type: "text",
+            },
+          ],
+          stream: true,
+        }),
+        signal: abortControllerRef.current.signal,
       });
 
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
       let assistantContent = "";
       const assistantId = (Date.now() + 1).toString();
 
@@ -128,20 +255,41 @@ export function ChatSDKInterface() {
         },
       ]);
 
-      for await (const part of stream) {
-        if (part.event === ChatEventType.CONVERSATION_MESSAGE_DELTA) {
-          const delta = part.data;
-          if (delta.content) {
-            assistantContent += delta.content;
-            setMessages((prev) =>
-              prev.map((m) =>
-                m.id === assistantId ? { ...m, content: assistantContent } : m
-              )
-            );
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          const chunk = decoder.decode(value, { stream: true });
+          const lines = chunk.split("\n");
+
+          for (const line of lines) {
+            if (line.startsWith("data:")) {
+              const data = line.slice(5).trim();
+              if (data === "[DONE]") continue;
+
+              try {
+                const parsed = JSON.parse(data);
+                // 处理消息增量
+                if (parsed.event === "conversation.message.delta" && parsed.data?.content) {
+                  assistantContent += parsed.data.content;
+                  setMessages((prev) =>
+                    prev.map((m) =>
+                      m.id === assistantId ? { ...m, content: assistantContent } : m
+                    )
+                  );
+                }
+              } catch (e) {
+                // 忽略解析错误
+              }
+            }
           }
         }
       }
     } catch (error) {
+      if (error instanceof Error && error.name === "AbortError") {
+        return;
+      }
       console.error("Chat error:", error);
       setMessages((prev) => [
         ...prev,
@@ -153,8 +301,9 @@ export function ChatSDKInterface() {
       ]);
     } finally {
       setIsLoading(false);
+      abortControllerRef.current = null;
     }
-  }, [input, isLoading, isConfigured, config.botId]);
+  }, [input, isLoading, isConfigured, config.token, config.botId]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -176,11 +325,18 @@ export function ChatSDKInterface() {
   };
 
   const handleSaveConfig = (newConfig: ChatConfig) => {
+    // 销毁旧客户端
+    if (clientRef.current) {
+      clientRef.current.destroy();
+      clientRef.current = null;
+    }
+    
     setConfig(newConfig);
+    setIsConfigured(false);
     setMessages([
       {
         role: "assistant",
-        content: "配置已保存！现在可以开始对话了。",
+        content: "配置已保存！正在初始化...",
         id: "configured",
       },
     ]);
@@ -197,7 +353,7 @@ export function ChatSDKInterface() {
           <div>
             <h1 className="font-semibold text-foreground">扣子 AI 助手</h1>
             <p className="text-xs text-muted-foreground">
-              {isConfigured ? "已配置" : "未配置"}
+              {!clientReady ? "SDK加载中..." : isConfigured ? "已配置" : "未配置"}
             </p>
           </div>
         </div>
@@ -298,16 +454,18 @@ export function ChatSDKInterface() {
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder={
-                isConfigured
+                !clientReady
+                  ? "SDK加载中..."
+                  : isConfigured
                   ? "输入消息... (Shift + Enter 换行)"
                   : "请先配置 Token 和 Bot ID"
               }
               className="min-h-[44px] max-h-[200px] resize-none border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 text-sm py-2.5 px-3"
-              disabled={isLoading}
+              disabled={isLoading || !clientReady}
             />
             <Button
               onClick={handleSend}
-              disabled={!input.trim() || isLoading}
+              disabled={!input.trim() || isLoading || !clientReady}
               size="icon"
               className="shrink-0 h-10 w-10 rounded-lg"
             >
@@ -380,17 +538,6 @@ function ConfigForm({
         <p className="text-xs text-muted-foreground">
           在扣子平台的「发布 &gt; Web SDK」中获取 Bot ID
         </p>
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="baseURL">Base URL（可选）</Label>
-        <Input
-          id="baseURL"
-          placeholder="https://api.coze.cn"
-          value={localConfig.baseURL}
-          onChange={(e) =>
-            setLocalConfig((prev) => ({ ...prev, baseURL: e.target.value }))
-          }
-        />
       </div>
       <Button type="submit" className="w-full">
         保存配置
