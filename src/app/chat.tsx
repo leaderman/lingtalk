@@ -19,9 +19,7 @@ export default function Chat() {
         },
         ui: {
           base: {
-            icon: "https://lf-coze-web-cdn.coze.cn/obj/coze-web-cn/obric/coze/favicon.1970.png",
             layout: "mobile",
-            zIndex: 1000,
           },
           asstBtn: {
             isNeed: false,
