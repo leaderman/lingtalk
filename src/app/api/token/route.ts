@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
       appId: process.env.LINGTALK_APP_ID || "",
       aud: process.env.LINGTALK_AUD || "",
       keyid: process.env.LINGTALK_KEYID || "",
-      privateKey: process.env.LINGTALK_PRIVATE_KEY || "",
+      privateKey: Buffer.from(process.env.LINGTALK_PRIVATE_KEY || "", "base64").toString("utf-8"),
       sessionName: uid,
     });
 
