@@ -5,10 +5,10 @@ import './globals.css';
 
 export const metadata: Metadata = {
   title: {
-    default: '扣子 AI 聊天 | Coze Chat',
-    template: '%s | Coze Chat',
+    default: '灵语 - 智能客服平台',
+    template: '%s | 灵语',
   },
-  description: '基于字节扣子 Chat SDK 的智能聊天应用',
+  description: '基于字节扣子 Chat SDK 的智能客服平台',
 };
 
 export default function RootLayout({
