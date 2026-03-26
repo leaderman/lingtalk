@@ -15,11 +15,11 @@ export async function GET(request: NextRequest) {
 
   try {
     const token = await getJWTToken({
-      baseURL: process.env.COZE_BASE_URL || "",
-      appId: process.env.COZE_APP_ID || "",
-      aud: process.env.COZE_AUD || "",
-      keyid: process.env.COZE_KEYID || "",
-      privateKey: process.env.COZE_PRIVATE_KEY || "",
+      baseURL: process.env.LINGTALK_BASE_URL || "",
+      appId: process.env.LINGTALK_APP_ID || "",
+      aud: process.env.LINGTALK_AUD || "",
+      keyid: process.env.LINGTALK_KEYID || "",
+      privateKey: process.env.LINGTALK_PRIVATE_KEY || "",
       sessionName: uid,
     });
 
