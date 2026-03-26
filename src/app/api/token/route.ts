@@ -21,6 +21,7 @@ export async function GET(request: NextRequest) {
       keyid: process.env.LINGTALK_KEYID || "",
       privateKey: Buffer.from(process.env.LINGTALK_PRIVATE_KEY || "", "base64").toString("utf-8"),
       sessionName: uid,
+      durationSeconds: 86399,
     });
 
     return NextResponse.json({
