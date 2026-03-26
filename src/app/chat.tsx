@@ -17,16 +17,22 @@ export default function Chat() {
           token: TOKEN,
           onRefreshToken: () => TOKEN,
         },
+        ui: {
+          asstBtn: {
+            isNeed: false,
+          },
+        },
       });
+
+      // 初始化完成后自动显示聊天框
+      cozeWebSDK.showChatBot();
     };
 
-    // 如果 SDK 已加载，直接初始化
     if ((window as any).CozeWebSDK) {
       initChat();
       return;
     }
 
-    // 否则等待 SDK 加载完成
     window.addEventListener("coze-sdk-ready", initChat);
     return () => window.removeEventListener("coze-sdk-ready", initChat);
   }, []);
