@@ -20,6 +20,7 @@ export default function Chat() {
         ui: {
           base: {
             layout: "mobile",
+            lang: "zh-CN",
           },
           asstBtn: {
             isNeed: false,
