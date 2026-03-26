@@ -55,7 +55,7 @@ export default function Chat() {
             isShow: false,
           },
           conversations: {
-            isNeed: true,
+            isNeed: false,
           },
           chatBot: {
             uploadable: false,
