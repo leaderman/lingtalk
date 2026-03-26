@@ -26,6 +26,9 @@ export default function Chat() {
             isNeed: false,
           },
         },
+        conversations: {
+          isNeed: true,
+        },
       });
 
       // 初始化完成后自动显示聊天框
