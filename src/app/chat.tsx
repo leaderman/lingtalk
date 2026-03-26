@@ -29,6 +29,9 @@ export default function Chat() {
             isShow: false,
             isNeedClose: false,
           },
+          footer: {
+            isShow: true,
+          },
           conversations: {
             isNeed: true,
           },
