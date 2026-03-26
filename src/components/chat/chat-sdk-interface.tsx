@@ -29,25 +29,18 @@ interface CozeWebChatConfig {
       zIndex?: number;
       width?: string;
       height?: string;
-      maxWidth?: string;
-      maxHeight?: string;
-    };
-    chatBot?: {
-      title?: string;
-      width?: string;
-      height?: string;
     };
     asstBtn?: {
       isVisible?: boolean;
-      position?: "bottom-right" | "bottom-left" | "top-right" | "top-left";
-      x?: number;
-      y?: number;
     };
   };
   auth?: {
     type: "token" | "jwt";
     token?: string;
     onRefreshToken?: () => string | Promise<string>;
+  };
+  chatConfig?: {
+    isVisible?: boolean;
   };
   onError?: (error: Error) => void;
   onReady?: () => void;
@@ -88,25 +81,21 @@ export function ChatSDKInterface() {
           ui: {
             base: {
               zIndex: 1000,
-              width: "100%",
-              height: "100%",
             },
-            chatBot: {
-              title: "扣子 AI 助手",
-              width: "100%",
-              height: "100%",
-            },
+            // 禁用悬浮按钮
             asstBtn: {
-              isVisible: false,  // 隐藏悬浮按钮
+              isVisible: false,
             },
+          },
+          // 默认显示聊天面板
+          chatConfig: {
+            isVisible: true,
           },
           onError: (error) => {
             console.error("Coze Chat Error:", error);
           },
           onReady: () => {
             console.log("Coze Chat Ready");
-            // 打开聊天面板
-            clientRef.current?.openChat();
           },
         });
       } catch (error) {
@@ -124,6 +113,6 @@ export function ChatSDKInterface() {
     };
   }, []);
 
-  // Chat SDK 会自动渲染到页面
+  // Chat SDK 会自动渲染聊天面板到页面
   return null;
 }
