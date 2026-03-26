@@ -58,6 +58,7 @@ export default function Chat() {
             isNeed: false,
           },
           chatBot: {
+            placeholder: "有问题，尽管问",
             uploadable: false,
           },
         },
