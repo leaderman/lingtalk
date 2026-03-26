@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { Inspector } from 'react-dev-inspector';
-import Script from 'next/script';
+import { CozeScript } from '@/components/coze-script';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -23,13 +23,7 @@ export default function RootLayout({
       <body className={`antialiased`}>
         {isDev && <Inspector />}
         {children}
-        <Script
-          src="https://lf-cdn.coze.cn/obj/unpkg/flow-platform/chat-app-sdk/1.2.0-beta.20/libs/cn/index.js"
-          strategy="afterInteractive"
-          onLoad={() => {
-            window.dispatchEvent(new Event('coze-sdk-ready'));
-          }}
-        />
+        <CozeScript />
       </body>
     </html>
   );
