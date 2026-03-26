@@ -4,10 +4,7 @@ import { CozeScript } from '@/components/coze-script';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: {
-    default: '灵语 - 智能客服平台',
-    template: '%s | 灵语',
-  },
+  title: '灵语 - 智能客服平台',
   description: '基于灵语的智能客服平台',
 };
 
