@@ -30,7 +30,7 @@ export default function Chat() {
             isNeedClose: false,
           },
           footer: {
-            isShow: true,
+            isShow: false,
           },
           conversations: {
             isNeed: true,
