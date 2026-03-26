@@ -135,26 +135,3 @@
 body {
   @apply font-sans;
 }
-
-/* 隐藏 Chat SDK 悬浮按钮 */
-.coze-chat-assistant-btn,
-[class*="coze-chat-assistant"],
-[id*="coze-chat-assistant"] {
-  display: none !important;
-}
-
-/* 让聊天面板占满整个页面 */
-.coze-chat-panel,
-[class*="coze-chat-panel"],
-[id*="coze-chat-panel"] {
-  position: fixed !important;
-  top: 0 !important;
-  left: 0 !important;
-  right: 0 !important;
-  bottom: 0 !important;
-  width: 100vw !important;
-  height: 100vh !important;
-  max-width: none !important;
-  max-height: none !important;
-  border-radius: 0 !important;
-}
