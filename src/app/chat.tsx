@@ -7,6 +7,17 @@ const TOKEN = "pat_Bku42cXAmMebJL3c2alZJDMjnx6mdzY4hL6dds2lLXTCJI3GYxBwlkLIARTl0
 
 export default function Chat() {
   useEffect(() => {
+    // 获取或生成用户 ID
+    let uid = localStorage.getItem("LINGTALK_UID");
+    if (!uid) {
+      uid = Array.from({ length: 16 }, () =>
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789".charAt(
+          Math.floor(Math.random() * 62)
+        )
+      ).join("");
+      localStorage.setItem("LINGTALK_UID", uid);
+    }
+
     const initChat = () => {
       const cozeWebSDK = new (window as any).CozeWebSDK.WebChatClient({
         config: {
