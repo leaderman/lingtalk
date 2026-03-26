@@ -36,6 +36,7 @@ interface CozeWebChatConfig {
     type: 'token' | 'jwt';
     token?: string;
     jwt?: string;
+    onRefreshToken?: () => string | Promise<string>;
   };
   onError?: (error: Error) => void;
   onMessageReceive?: (message: string) => void;
@@ -132,6 +133,7 @@ export function ChatSDKInterface() {
         auth: {
           type: "token",
           token: config.token,
+          onRefreshToken: () => config.token,
         },
         ui: {
           base: {
