@@ -37,14 +37,17 @@ interface CozeWebChatConfig {
       width?: string;
       height?: string;
     };
+    asstBtn?: {
+      isVisible?: boolean;
+      position?: "bottom-right" | "bottom-left" | "top-right" | "top-left";
+      x?: number;
+      y?: number;
+    };
   };
   auth?: {
     type: "token" | "jwt";
     token?: string;
     onRefreshToken?: () => string | Promise<string>;
-  };
-  chatConfig?: {
-    auto_open_chatpanel?: boolean;
   };
   onError?: (error: Error) => void;
   onReady?: () => void;
@@ -58,7 +61,6 @@ interface CozeWebChatClient {
 }
 
 export function ChatSDKInterface() {
-  const containerRef = useRef<HTMLDivElement>(null);
   const clientRef = useRef<CozeWebChatClient | null>(null);
 
   useEffect(() => {
@@ -91,16 +93,20 @@ export function ChatSDKInterface() {
             },
             chatBot: {
               title: "扣子 AI 助手",
+              width: "100%",
+              height: "100%",
             },
-          },
-          chatConfig: {
-            auto_open_chatpanel: true,
+            asstBtn: {
+              isVisible: false,  // 隐藏悬浮按钮
+            },
           },
           onError: (error) => {
             console.error("Coze Chat Error:", error);
           },
           onReady: () => {
             console.log("Coze Chat Ready");
+            // 打开聊天面板
+            clientRef.current?.openChat();
           },
         });
       } catch (error) {
@@ -118,12 +124,6 @@ export function ChatSDKInterface() {
     };
   }, []);
 
-  // 返回一个容器，SDK 会将聊天面板渲染到这里
-  return (
-    <div
-      ref={containerRef}
-      className="w-full h-full"
-      id="coze-chat-container"
-    />
-  );
+  // Chat SDK 会自动渲染到页面
+  return null;
 }
