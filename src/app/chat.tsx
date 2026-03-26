@@ -7,7 +7,7 @@ const TOKEN = "pat_Bku42cXAmMebJL3c2alZJDMjnx6mdzY4hL6dds2lLXTCJI3GYxBwlkLIARTl0
 
 export default function Chat() {
   useEffect(() => {
-    new (window as any).CozeWebSDK.WebChatClient({
+    const cozeWebSDK = new (window as any).CozeWebSDK.WebChatClient({
       config: {
         bot_id: BOT_ID,
       },
