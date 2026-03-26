@@ -25,6 +25,10 @@ export default function Chat() {
           asstBtn: {
             isNeed: false,
           },
+          header: {
+            isShow: true,
+            isNeedClose: true,
+          },
           conversations: {
             isNeed: true,
           },
