@@ -3,7 +3,6 @@
 import { useEffect } from "react";
 
 const BOT_ID = "7621087393454145582";
-const TOKEN = "pat_Bku42cXAmMebJL3c2alZJDMjnx6mdzY4hL6dds2lLXTCJI3GYxBwlkLIARTl0YAv";
 
 export default function Chat() {
   useEffect(() => {
@@ -18,15 +17,27 @@ export default function Chat() {
       localStorage.setItem("LINGTALK_UID", uid);
     }
 
-    const initChat = () => {
+    // 获取 token 的函数
+    const fetchToken = async () => {
+      const response = await fetch(`/api/token?uid=${uid}`);
+      const result = await response.json();
+      if (result.code === 200) {
+        return result.data;
+      }
+      throw new Error(result.msg || "Failed to get token");
+    };
+
+    const initChat = async () => {
+      const token = await fetchToken();
+
       const cozeWebSDK = new (window as any).CozeWebSDK.WebChatClient({
         config: {
           bot_id: BOT_ID,
         },
         auth: {
           type: "token",
-          token: TOKEN,
-          onRefreshToken: () => TOKEN,
+          token: token,
+          onRefreshToken: () => fetchToken(),
         },
         ui: {
           base: {
@@ -61,8 +72,11 @@ export default function Chat() {
       return;
     }
 
-    window.addEventListener("coze-sdk-ready", initChat);
-    return () => window.removeEventListener("coze-sdk-ready", initChat);
+    const handleReady = () => {
+      initChat();
+      window.removeEventListener("coze-sdk-ready", handleReady);
+    };
+    window.addEventListener("coze-sdk-ready", handleReady);
   }, []);
 
   return null;
