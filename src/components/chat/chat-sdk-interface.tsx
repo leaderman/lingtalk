@@ -21,6 +21,7 @@ import { cn } from "@/lib/utils";
 // SDK 类型声明
 interface CozeWebChatConfig {
   config: {
+    type?: "bot" | "agent";
     bot_id: string;
   };
   componentProps?: {
@@ -125,6 +126,7 @@ export function ChatSDKInterface() {
     try {
       clientRef.current = new window.CozeWebSDK.WebChatClient({
         config: {
+          type: "bot",
           bot_id: config.botId,
         },
         componentProps: {
